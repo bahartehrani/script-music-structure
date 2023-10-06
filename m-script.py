@@ -18,5 +18,10 @@ if token:
 else:
     print("Can't get token for", username)
 
+# Start with 1 track:
+track_uri = 'spotify:track:TRACK_ID'
+track_id = track_uri.split(':')[-1]
+track_info = sp.track(track_uri)
 
+audio_analysis = sp.audio_analysis(track_id)
 
