@@ -1,6 +1,8 @@
 import spotipy
 from spotipy.oauth2 import SpotifyClientCredentials
 from spotipy import util
+import numpy as np
+import matplotlib.pyplot as plt
 
 client_id = "CLIENT ID"
 client_secret = "CLIENT SECRET"
@@ -24,4 +26,26 @@ track_id = track_uri.split(':')[-1]
 track_info = sp.track(track_uri)
 
 audio_analysis = sp.audio_analysis(track_id)
+
+# Start with Self-Similarity Matrix computation:
+
+segments = audio_analysis['segments']
+num_segments = len(segments)
+
+self_similarity_matrix = np.zeros((num_segments, num_segments))
+
+def calculate_similarity(segment1, segment2):
+    p1 = segment1['pitch']
+    p2 = segment2['pitch']
+    euclidean_distance = np.linalg.norm(p1 - p2)
+    similarity = 1 / (1 + euclidean_distance)
+
+    return similarity
+
+for i in range(num_segments):
+    for j in range(num_segments):
+        similarity = calculate_similarity(segments[i], segments[j])
+        self_similarity_matrix[i, j] = similarity
+
+
 
