@@ -1,4 +1,5 @@
 import spotipy
+from logging import log
 import scipy
 from spotipy.oauth2 import SpotifyClientCredentials
 from spotipy import util
@@ -55,6 +56,14 @@ class HalfMatrix:
         else:
             self.data = [0] * self.length  # Again, consider using numpy for actual numerical computation.
 
+    def fill_features_normalized(self, callback):
+        for y in range(self.size):
+            cells_before = ((y * y + y) // 2) * self.feature_amount
+            for x in range(y + 1):
+                for f in range(self.feature_amount):
+                    self.data[cells_before + x * self.feature_amount + f] = callback(x, y, f) * self.number_type.scale
+
+
 def calculate_ssm(features, sample_duration, all_pitches=False, threshold=0, similarity_function="cosine"):
     ssm = HalfMatrix(
         size=len(features),
@@ -63,17 +72,42 @@ def calculate_ssm(features, sample_duration, all_pitches=False, threshold=0, sim
         feature_amount=12 if all_pitches else 1
     )
 
+    def euclidian_pitch_transposed(a, b, p):
+        return 1 - euclidian_distance_transposed(a, b, p) / (12 ** 0.5)
+
+    def euclidian_distance_transposed(a, b, p):
+        return squared_distance_transposed(a, b, p) ** 0.5
+
+    def squared_distance_transposed(a, b, p):
+        dist = 0
+        for i in range(len(a)):
+            transposed_i = (i + p) % 12
+            diff = a[i] - b[transposed_i]
+            dist += diff * diff
+        return dist
+
+    def cosine_transposed(a, b, p):
+        adotv = 0
+        amag = 0
+        bmag = 0
+        for i in range(len(a)):
+            transposed_i = (i + p) % 12
+            adotv += a[i] * b[transposed_i]
+            amag += a[i] * a[i]
+            bmag += b[transposed_i] * b[transposed_i]
+        
+        amag = amag ** 0.5
+        bmag = bmag ** 0.5
+        return adotv / (amag * bmag)
+
     def fill_feature_function(x, y, f):
         if similarity_function == "cosine":
-            return max(0, sim.cosine_transposed(features[x], features[y], f) - threshold) / (1 - threshold)
-        elif similarity_function == "euclidean":
-            val = sim.euclidian_pitch_transposed(features[x], features[y], f)
-            # Assuming 'log' is a logger you'll have to import or define.
+            return max(0, cosine_transposed(features[x], features[y], f) - threshold) / (1 - threshold)
+        if similarity_function == "euclidean":
+            val = euclidian_pitch_transposed(features[x], features[y], f)
             if val < 0 or val > 1:
                 log.debug(x, y, val, features[x], features[y])
             return max(0, min(1, val - threshold)) / (1 - threshold)
-        elif similarity_function == "euclideanTimbre":
-            return max(0, min(1, sim.euclidian_timbre(features[x], features[y]) - threshold)) / (1 - threshold)
 
     ssm.fill_features_normalized(fill_feature_function)
     return ssm
