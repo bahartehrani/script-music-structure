@@ -34,6 +34,7 @@ num_segments = len(segments)
 
 self_similarity_matrix = np.zeros((num_segments, num_segments))
 
+# Simple function to calculate similarity
 def calculate_similarity(segment1, segment2):
     p1 = segment1['pitch']
     p2 = segment2['pitch']
@@ -42,6 +43,7 @@ def calculate_similarity(segment1, segment2):
 
     return similarity
 
+# Create the SSM
 for i in range(num_segments):
     for j in range(num_segments):
         similarity = calculate_similarity(segments[i], segments[j])
