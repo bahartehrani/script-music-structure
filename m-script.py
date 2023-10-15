@@ -7,6 +7,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 from scipy.ndimage import gaussian_filter
 
+############# Spotify client setup: #############
+
 client_id = "CLIENT ID"
 client_secret = "CLIENT SECRET"
 username = "USERNAME"
@@ -38,12 +40,14 @@ num_segments = len(segments)
 self_similarity_matrix = np.zeros((num_segments, num_segments))
 
 class HalfMatrix:
+    # Finish NumberType implementation here (1)
     class NumberType:
         UINT8 = 'UINT8'
 
     def __init__(self, options):
         self.size = options.get('size')
         self.feature_amount = options.get('feature_amount', 1)
+         # Finish NumberType implementation here (2)
         self.number_type = get_number_type_by_name(options.get('number_type', NumberType.FLOAT32))
         self.sample_duration = options.get('sample_duration', 1)
         self.length = ((self.size * self.size + self.size) // 2) * self.feature_amount
@@ -112,7 +116,16 @@ def calculate_ssm(features, sample_duration, all_pitches=False, threshold=0, sim
     ssm.fill_features_normalized(fill_feature_function)
     return ssm
 
+############# Compute sample pitches through Features class: #############
 
 
 
 
+
+
+
+
+
+# Need to create Features class and process in constructor
+# Then compute harmonic structure using sampled pitches
+# Then compute self-similarity matrix
