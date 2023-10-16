@@ -1,5 +1,6 @@
-import logging
 import SpotifySegment
+from logging import log
+from scipy.ndimage import gaussian_filter
 
 class Features:
     def __init__(self, analysis_data, options=None):
@@ -66,10 +67,6 @@ class Features:
         # Assuming a `sample` method exists or will be implemented
         self.fast_sampled_pitch = self.sample("pitches", {"sampleDuration": self.fast_sample_duration})
 
-    # ... Rest of the methods ...
-
-    # Placeholder methods for the ones used above:
-
     def process_segments(self):
         for i, s in enumerate(self.segments):
             self.raw['pitches'][i] = s.segment['pitches']
@@ -118,12 +115,100 @@ class Features:
         return self.raw['loudness'][index][1]
 
     def sample_features(self):
-        pass  # TODO: Implement
+        # Fill sample start duration
+        for i in range(self.sample_amount - 1):
+            self.sample_start_duration.append([i * self.sample_duration, self.sample_duration])
+        
+        # Last sample is shorter
+        last_sample_start = (self.sample_amount - 1) * self.sample_duration
+        self.sample_start_duration.append([last_sample_start, self.duration - last_sample_start])
+        self.init_sample_features()
+
+        blur_duration = self.sample_blur * self.sample_duration
+        blur_outside_sample_duration = (blur_duration - self.sample_duration) / 2
+
+        for segment_index, segment in enumerate(self.segments):
+            segment_end = segment.start + segment.duration
+
+            # Calculate range of samples e.g. [2,6] clip by 0 and size
+            sample_range_start_index = max(
+                0,
+                int((segment.start - blur_outside_sample_duration) / self.sample_duration)
+            )
+            sample_range_end_index = min(
+                self.sample_amount - 1,
+                int((segment_end + blur_outside_sample_duration) / self.sample_duration)
+            )
+
+            range_size = sample_range_end_index - sample_range_start_index
+            if range_size >= 1:
+                # First sample in range
+                first_sample = self.sample_start_duration[sample_range_start_index]
+                sample_blur_end = first_sample[0] + first_sample[1] + blur_outside_sample_duration
+                first_sample_overlap = sample_blur_end - segment.start
+                self.add_features_scaled(sample_range_start_index, segment_index, first_sample_overlap)
+            
+            if range_size >= 1:
+                # Last sample in range
+                sample_blur_start = self.sample_start_duration[sample_range_end_index][0] - blur_outside_sample_duration
+                last_sample_overlap = segment_end - sample_blur_start
+                self.add_features_scaled(sample_range_end_index, segment_index, last_sample_overlap)
+            
+            if range_size >= 2:
+                # Every middle sample
+                for i in range(sample_range_start_index + 1, sample_range_end_index):
+                    self.add_features_scaled(i, segment_index, blur_duration)
+            
+            if range_size == 0:
+                self.add_features_scaled(sample_range_start_index, segment_index, segment.duration)
+
+        # First sample has only blur on right
+        self.divide_features(0, self.sample_duration + blur_outside_sample_duration)
+
+        # Last sample has shorter duration and only blur on left
+        self.divide_features(
+            self.sample_amount - 1,
+            self.sample_start_duration[self.sample_amount - 1][1] + blur_outside_sample_duration
+        )
+
+        for i in range(1, self.sample_amount - 1):
+            self.divide_features(i, blur_duration)
 
     def process_samples(self):
+        self.sampled_chords = []
+        self.sampled_majorminor = []
+        for i in range(self.sample_amount):
+            # Assuming chord_detection is a global object or module
+            self.sampled_chords.append(chord_detection.get_pop_chord(self.sampled_pitches[i]))
+            self.sampled_majorminor.append(chord_detection.get_major_minor_ness(self.sampled_pitches[i]))
+
+        self.sampled_smoothed_avg_loudness = gaussian_filter(self.sampled_avg_loudness, 1)
+        self.average_loudness = 0
+        self.max_loudness = 0
+        for loudness in self.sampled_smoothed_avg_loudness:
+            self.average_loudness += loudness
+            if loudness > self.max_loudness:
+                self.max_loudness = loudness
+
+        # Assuming log is a global object or module for logging
+        log.debug("Maxloudness", self.max_loudness)
+        log.debug(self.sampled_dynamics[0])
+        log.debug(self.sampled_dynamics[0] / self.max_loudness)
+        log.debug((self.sampled_dynamics[0] / self.max_loudness) * (1 - self.dynamics_base) + self.dynamics_base)
+
+        self.processed_dynamics = [(dynamic / self.max_loudness) * (1 - self.dynamics_base) + self.dynamics_base for dynamic in self.processed_dynamics]
+        self.sampled_dynamics = [(dynamic / self.max_loudness) * (1 - self.dynamics_base) + self.dynamics_base for dynamic in self.sampled_dynamics]
+        log.debug(self.sampled_dynamics[0])
+
+        self.average_loudness /= len(self.sampled_smoothed_avg_loudness)
+
+    def init_sample_features(self):
         pass  # TODO: Implement
 
-    def down_sample_timbre(self, downsample_amount):
+    def add_features_scaled(self):
+        pass  # TODO: Implement
+
+    def divide_features(self):
         pass  # TODO: Implement
 
     def sample(self, feature_type, options):
