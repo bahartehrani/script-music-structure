@@ -3,6 +3,8 @@ from logging import log
 from scipy.ndimage import gaussian_filter
 import numpy as np
 
+# TODO: Add dependency to chord detection module 
+
 class Features:
     def __init__(self, analysis_data, options=None):
         if options is None:
