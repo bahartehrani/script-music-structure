@@ -10,7 +10,6 @@ class Features:
         self.length = 0
         self.segments = []
         self.segment_start_duration = []
-        self.beats_start_duration = []
         self.raw = {
             'pitches': [],
             'loudness': []
@@ -49,20 +48,9 @@ class Features:
         self.sample_amount = min(int(self.duration / options.get('sampleDuration', 1)), options.get('samples', 0))
         self.sample_duration = analysis_data['track']['duration'] / self.sample_amount
 
-        # Following lines are a representation of what's in the JS constructor. However, methods like
-        # `this.fillBeatsStartDuration` and `this.calculateMaxMin` aren't provided in the given code.
-        # Also, libraries used in the original JS like 'SSM', 'filter', and 'noveltyDetection' aren't defined here.
-        # You will need to implement or import those functions/libraries for the translated code to work.
-
         self.sample_blur = options.get('sampleBlur', 1)
-
-        # You will need to define or import the mentioned methods and libraries for the complete translation.
         
         logging.info(f"Sampling, Amount: {self.sample_amount}, Duration: {self.sample_duration}")
-        # Assuming a `fill_beats_start_duration` method exists or will be implemented
-        self.fill_beats_start_duration(analysis_data['beats'])
-        # Assuming a `calculate_max_min` method exists or will be implemented
-        self.calculate_max_min()
 
         # Assuming a `process_segments` method exists or will be implemented
         self.process_segments()
@@ -78,43 +66,56 @@ class Features:
         # Assuming a `sample` method exists or will be implemented
         self.fast_sampled_pitch = self.sample("pitches", {"sampleDuration": self.fast_sample_duration})
 
-        # features = self.sampled['timbres']
-        # segmentation_smoothing_length = round(5)
-        # continuous_smoothing_length = round(10)
-
-        # Making use of SSM, filter, and noveltyDetection libraries/functions:
-        # ssm_timbre = SSM.calculate_ssm(features, self.sample_duration)
-        # blurred_timbre_large = filter.gaussian_blur_2d_optimized(ssm_timbre, 5)
-        # timbre_novelty_column = noveltyDetection.absolute_euclidean_column_derivative(blurred_timbre_large)
-
-        # segmentation_smoothed_features = filter.gaussian_blur_features(features, segmentation_smoothing_length)
-        # segmentation_derivative = noveltyDetection.feature_derivative(segmentation_smoothed_features)
-        # smoothed_segmentation_derivative = filter.gaussian_blur_1d(segmentation_derivative, 5)
-        # segments = structure.create_segments_from_novelty(smoothed_segmentation_derivative, self.sample_duration, 0.2)
-        # averaged_coloured_segments = structure.process_timbre_segments(features, segments, self.sample_duration)
-
-        segmented_features = []
-        for segment in segments:
-            feature_segment = features[segment['startSample']:segment['endSample']]
-            smoothed_feature_segment = filter.gaussian_blur_features(feature_segment, continuous_smoothing_length)
-            segmented_features.append(smoothed_feature_segment)
-
-        logging.debug("segmentedFeatures", segmented_features)
-
     # ... Rest of the methods ...
 
     # Placeholder methods for the ones used above:
-    def fill_beats_start_duration(self, beats):
-        pass  # TODO: Implement
-
-    def calculate_max_min(self):
-        pass  # TODO: Implement
 
     def process_segments(self):
-        pass  # TODO: Implement
+        for i, s in enumerate(self.segments):
+            self.raw['pitches'][i] = s.segment['pitches']
+            self.raw['loudness'][i] = s.get_loudness_features()
+            ###
+            s.process_pitch()
+
+            self.processed['pitches'].append(s.pitches)
+            self.processed['noise'].append(s.noise)
+            self.processed['loudness'].append(s.get_loudness_features())
+
+            next_segment_start_loudness = self.segments[i + 1].get_loudness_features()[0] if i + 1 < len(self.segments) else 0
+            self.processed['avg_loudness'].append(s.get_average_loudness(next_segment_start_loudness))
+            self.processed['dynamics'].append(s.get_average_loudness(next_segment_start_loudness))
+
+            self.processed['tonal_energy'].append(s.tonality_energy)
+            self.processed['tonal_radius'].append(s.tonality_radius)
+            self.processed['tonal_angle'].append(s.tonality_angle)
+
+        for i in range(len(self.segments)):
+            if 0 < i < len(self.segments) - 1:
+                self.segments[i].process_pitch_smooth(self.segments[i - 1], self.segments[i + 1])
 
     def process_direct_loudness(self):
-        pass  # TODO: Implement
+        self.direct_loudness_amount = int(self.duration / self.direct_loudness_sample_duration)
+        self.direct_loudness = [0.0] * self.direct_loudness_amount
+
+        print("Process direct loudness", 
+              "duration", self.duration, 
+              "segment_amount", len(self.segment_start_duration), 
+              "amount", self.direct_loudness_amount)
+
+        segment_index = 0
+        for i in range(self.direct_loudness_amount):
+            time = self.direct_loudness_sample_duration * i
+            while not self.is_time_in_segment(segment_index, time):
+                segment_index += 1
+            self.direct_loudness[i] = self.get_exact_loudness(segment_index, time)
+
+    def is_time_in_segment(self, index, time):
+        start = self.segment_start_duration[index][0]
+        end = start + self.segment_start_duration[index][1]
+        return time >= start and time < end
+
+    def get_exact_loudness(self, index, time):
+        return self.raw['loudness'][index][1]
 
     def sample_features(self):
         pass  # TODO: Implement

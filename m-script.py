@@ -6,6 +6,7 @@ from spotipy import util
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.ndimage import gaussian_filter
+import Features
 
 ############# Spotify client setup: #############
 
@@ -117,6 +118,21 @@ def calculate_ssm(features, sample_duration, all_pitches=False, threshold=0, sim
     return ssm
 
 ############# Compute sample pitches through Features class: #############
+
+# Don't need a Track class yet, we can just directly pass the audio features into the Features class
+# def process(self):
+#     self.processing = True
+    
+#     self.features = Features(self.analysisData, {
+#         'samples': samples,
+#         'sampleDuration': sampleDuration,
+#         'sampleBlur': sampleBlur,
+#     })
+
+#     self.computeHarmonicStructure()
+
+#     self.processed = True
+#     self.processing = False
 
 
 
