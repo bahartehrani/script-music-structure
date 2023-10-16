@@ -1,6 +1,7 @@
 import SpotifySegment
 from logging import log
 from scipy.ndimage import gaussian_filter
+import numpy as np
 
 class Features:
     def __init__(self, analysis_data, options=None):
@@ -51,7 +52,7 @@ class Features:
 
         self.sample_blur = options.get('sampleBlur', 1)
         
-        logging.info(f"Sampling, Amount: {self.sample_amount}, Duration: {self.sample_duration}")
+        log.info(f"Sampling, Amount: {self.sample_amount}, Duration: {self.sample_duration}")
 
         # Assuming a `process_segments` method exists or will be implemented
         self.process_segments()
@@ -203,16 +204,85 @@ class Features:
         self.average_loudness /= len(self.sampled_smoothed_avg_loudness)
 
     def init_sample_features(self):
-        pass  # TODO: Implement
+        for feature_name, feature_value in self.processed.items():
+            self.sampled[feature_name] = [0] * self.sample_amount
 
-    def add_features_scaled(self):
-        pass  # TODO: Implement
+            feature_size = len(feature_value[0]) if feature_value else 0
 
-    def divide_features(self):
-        pass  # TODO: Implement
+            if feature_size:
+                for s in range(self.sample_amount):
+                    self.sampled[feature_name][s] = [0] * feature_size
+            else:
+                for s in range(self.sample_amount):
+                    self.sampled[feature_name][s] = 0
 
-    def sample(self, feature_type, options):
-        pass  # TODO: Implement
+    def add_features_scaled(self, sample_index, segment_index, scalar):
+        for feature_name, feature_value in self.processed.items():
+            feature_size = len(feature_value[0]) if feature_value else 0
+            
+            if feature_size:
+                for i in range(feature_size):
+                    self.sampled[feature_name][sample_index][i] += self.processed[feature_name][segment_index][i] * scalar
+            else:
+                self.sampled[feature_name][sample_index] += self.processed[feature_name][segment_index] * scalar
+
+    def divide_features(self, sample_index, divisor):
+        for feature_name, feature_value in self.sampled.items():
+            feature_size = len(self.processed[feature_name][0]) if self.processed[feature_name] else 0
+            
+            if feature_size:
+                for i in range(feature_size):
+                    self.sampled[feature_name][sample_index][i] /= divisor
+            else:
+                self.sampled[feature_name][sample_index] /= divisor
+
+    def sample(self, feature, options):
+        sampled_feature = []
+
+        sample_amount = 0
+        sample_duration = 0
+        if 'sampleDuration' in options:
+            # make sure the length of the track is divisible by sample_duration
+            sample_amount = round(self.duration / options['sampleDuration'])
+            sample_duration = self.duration / sample_amount
+        if 'sampleAmount' in options:
+            sample_amount = options['sampleAmount']
+            sample_duration = self.duration / sample_amount
+
+        i = 0
+        for s in range(sample_amount):
+            average_feature = np.zeros(12, dtype=np.float32)
+
+            sample_start = s * sample_duration
+            sample_end = (s + 1) * sample_duration
+
+            # Sample is contained in segment, simply copy pitch from segment and go to next sample
+            if self.segments[i].get_end() > sample_end:
+                average_feature = np.add(average_feature, self.segments[i][feature])
+                sampled_feature.append(average_feature)
+                continue
+
+            # add part of first segment
+            if self.segments[i].get_end() > sample_start:
+                weight = (self.segments[i].get_end() - sample_start) / sample_duration
+                average_feature = np.add(average_feature, weight * self.segments[i][feature])
+                i += 1
+
+            # while entire segment is contained in sample
+            while i < len(self.segments) and self.segments[i].get_end() < sample_end:
+                weight = self.segments[i].duration / sample_duration
+                average_feature = np.add(average_feature, weight * self.segments[i][feature])
+                i += 1
+
+            # add part of last segment
+            if i < len(self.segments):
+                weight = (sample_end - self.segments[i].start) / sample_duration
+                average_feature = np.add(average_feature, weight * self.segments[i][feature])
+
+            sampled_feature.append(average_feature)
+
+        return sampled_feature
+
 
 
 
