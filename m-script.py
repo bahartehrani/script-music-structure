@@ -1,21 +1,21 @@
 import spotipy
-from logging import log
+import logging as log
 import scipy
 from spotipy.oauth2 import SpotifyClientCredentials
 from spotipy import util
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.ndimage import gaussian_filter
-import Features
+import FeaturesOld
 
 ############# Spotify client setup: #############
 
-client_id = "CLIENT ID"
-client_secret = "CLIENT SECRET"
-username = "USERNAME"
+client_id = "18b62f10adae4a23a7824e9dc9f80da9"
+client_secret = "c5192bb99a7044ab8d349be6dd80de49"
+username = "noteaholic"
 
 scope = "user-library-read"
-redirect_uri = "CALLBACK"
+redirect_uri = "http://localhost:8080/callback"
 client_credentials_manager = SpotifyClientCredentials(client_id, client_secret)
 
 sp = spotipy.Spotify(client_credentials_manager=client_credentials_manager)
@@ -27,7 +27,7 @@ else:
     print("Can't get token for", username)
 
 # Start with 1 track:
-track_uri = 'spotify:track:TRACK_ID'
+track_uri = 'spotify:track:2agJG5mKBoOL8uojjKQvCD?si=9ec0419ca0fe4313'
 track_id = track_uri.split(':')[-1]
 track_info = sp.track(track_uri)
 
@@ -41,25 +41,18 @@ num_segments = len(segments)
 self_similarity_matrix = np.zeros((num_segments, num_segments))
 
 class HalfMatrix:
-    # Finish NumberType implementation here (1)
-    class NumberType:
-        UINT8 = 'UINT8'
-
     def __init__(self, options):
         self.size = options.get('size')
         self.feature_amount = options.get('feature_amount', 1)
-         # Finish NumberType implementation here (2)
-        self.number_type = get_number_type_by_name(options.get('number_type', NumberType.FLOAT32))
+        self.number_type = 'FLOAT32'
         self.sample_duration = options.get('sample_duration', 1)
         self.length = ((self.size * self.size + self.size) // 2) * self.feature_amount
 
         if 'buffer' in options:
-            # In python, instead of using JavaScript typed arrays like Float32Array, you might use numpy arrays.
-            # Here's a placeholder using a list, but consider replacing with an appropriate numpy datatype.
             self.data = list(options['buffer'])
             assert self.length == len(self.data)
         else:
-            self.data = [0] * self.length  # Again, consider using numpy for actual numerical computation.
+            self.data = [0] * self.length
 
     def fill_features_normalized(self, callback):
         for y in range(self.size):
@@ -72,7 +65,7 @@ class HalfMatrix:
 def calculate_ssm(features, sample_duration, all_pitches=False, threshold=0, similarity_function="cosine"):
     ssm = HalfMatrix(
         size=len(features),
-        number_type=HalfMatrix.NumberType.UINT8,
+        number_type='UINT8',
         sample_duration=sample_duration,
         feature_amount=12 if all_pitches else 1
     )
@@ -128,7 +121,7 @@ def compute_harmonic_structure():
 def process(self):
     self.processing = True
     
-    self.features = Features(self.analysisData, {
+    self.features = FeaturesOld(self.analysisData, {
         'samples': 600,
         'sampleDuration': 0.33,
         'sampleBlur': 1,
@@ -138,13 +131,6 @@ def process(self):
 
     self.processed = True
     self.processing = False
-
-
-
-
-
-
-
 
 
 # Need to create Features class and process in constructor

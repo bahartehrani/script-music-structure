@@ -14,8 +14,6 @@ class SpotifySegment:
 
         self.pitches = []
         self.noise = []
-        self.timbres = []
-        self.timbres_scaled = []
 
         self.cluster = -1
         self.tsne_coord = [0, 0]
@@ -26,13 +24,10 @@ class SpotifySegment:
         self.percussiony = 0  # [0,1] segments larger than .15
 
         self.processed_pitch = False
-        self.process_pitch()
-
         self.processed_pitch_smooth = False
 
+        self.process_pitch()
         self.process_pitch_equalize_bass()
-
-        self.processed_timbre = False
 
     def process_pitch(self):
         if self.processed_pitch:
@@ -86,22 +81,8 @@ class SpotifySegment:
             for p in range(len(self.pitches)):
                 self.pitches[p] = min(1, self.pitches[p] * scale)
 
-    def process_timbre(self, min_val, max_val, biggest, total_biggest):
-        if self.processed_timbre:
-            return
-        for timbre in self.segment['timbre']:
-            self.timbres.append(timbre / total_biggest)
-
-        for i, timbre in enumerate(self.segment['timbre']):
-            self.timbres_scaled.append(timbre / biggest[i])
-
-        self.processed_timbre = True
-
     def get_pitches(self):
         return self.pitches
-
-    def get_timbres(self):
-        return self.timbres
 
     def get_duration(self):
         return self.duration
@@ -112,11 +93,8 @@ class SpotifySegment:
     def get_end(self):
         return self.start + self.duration
 
-    def get_original_timbres(self):
-        return self.segment['timbre']
-
     def get_features(self):
-        return self.pitches + self.timbres
+        return self.pitches
 
     def set_cluster(self, i):
         self.cluster = i
