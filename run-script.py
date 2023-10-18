@@ -58,7 +58,14 @@ def calculate_ssm(features, sample_duration, all_pitches=False, threshold=0, sim
 
 
 def compute_harmonic_structure(options):
-    pass
+    pitch_features = options.get('pitch_features')
+    sample_amount = len(pitch_features)
+
+    # TODO: Gaussian blur the features
+
+    pitch_ssm = calculate_ssm(pitch_features, options.get('sample_duration'), options.get('all_pitches'), 0.35, "euclidean")
+    # print(pitch_ssm.data)
+
 
 def process():
     features = Features(audio_analysis, {
@@ -70,9 +77,9 @@ def process():
     compute_harmonic_structure({
         'pitch_features': features.sampled.get('pitches'),
         'sample_duration': features.sample_duration,
-        'all_pitches': True,
-        'enhance_blur_length': True,
-        'tempo_ratios': True,
+        'all_pitches': False,
+        'enhance_blur_length': 6,
+        'tempo_ratios': [0.66, 0.81, 1, 1.22, 1.5],
     })
 
 

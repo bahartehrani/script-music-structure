@@ -23,4 +23,4 @@ class HalfMatrix:
             cells_before = ((y * y + y) // 2) * self.feature_amount
             for x in range(y + 1):
                 for f in range(self.feature_amount):
-                    self.data[cells_before + x * self.feature_amount + f] = callback(x, y, f) * self.number_type.scale
+                    self.data[cells_before + x * self.feature_amount + f] = callback(x, y, f) * self.number_type.value['scale']

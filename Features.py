@@ -1,6 +1,7 @@
 from SpotifySegment import SpotifySegment
 import logging as log
 import numpy as np
+from scipy.ndimage import gaussian_filter1d
 
 class Features:
     def __init__(self, analysis_data, options=None):
@@ -53,19 +54,13 @@ class Features:
         
         log.debug(f"Sampling, Amount: {self.sample_amount}, Duration: {self.sample_duration}")
 
-        # Assuming a `process_segments` method exists or will be implemented
         self.process_segments()
         if len(self.segments):
-            # Assuming a `process_direct_loudness` method exists or will be implemented
             self.process_direct_loudness()
 
-        # Assuming a `sample_features` method exists or will be implemented
         self.sample_features()
-        # Assuming a `process_samples` method exists or will be implemented
         self.process_samples()
-
-        # Assuming a `sample` method exists or will be implemented
-        self.fast_sampled_pitch = self.sample("pitches", {"sampleDuration": self.fast_sample_duration})
+        self.fast_sampled_pitch = self.sample("pitches", {"sample_duration": self.fast_sample_duration})
 
     def process_segments(self):
         for i, s in enumerate(self.segments):
@@ -179,10 +174,95 @@ class Features:
                 self.sampled[feature_name][sample_index] /= divisor
 
     def process_samples(self):
-        pass
+        self.sampled_smoothed_avg_loudness = gaussian_filter1d(self.sampled['avg_loudness'], 1)
+        self.average_loudness = 0
+        self.max_loudness = 0
+        for loudness in self.sampled_smoothed_avg_loudness:
+            self.average_loudness += loudness
+            if loudness > self.max_loudness:
+                self.max_loudness = loudness
+
+        log.debug("Maxloudness", self.max_loudness)
+        log.debug(self.sampled['dynamics'][0])
+        log.debug(self.sampled['dynamics'][0] / self.max_loudness)
+        log.debug((self.sampled['dynamics'][0] / self.max_loudness) * (1 - self.dynamics_base) + self.dynamics_base)
+
+        self.processed['dynamics'] = [(dynamic / self.max_loudness) * (1 - self.dynamics_base) + self.dynamics_base for dynamic in self.processed['dynamics']]
+        self.sampled['dynamics'] = [(dynamic / self.max_loudness) * (1 - self.dynamics_base) + self.dynamics_base for dynamic in self.sampled['dynamics']]
+        log.debug(self.sampled['dynamics'][0])
+
+        self.average_loudness /= len(self.sampled_smoothed_avg_loudness)
 
     def process_direct_loudness(self):
-        pass
+        self.direct_loudness_amount = int(self.duration / self.direct_loudness_sample_duration)
+        self.direct_loudness = [0.0] * self.direct_loudness_amount
 
-    def sample(self, features, options):
-        pass
+        print("Process direct loudness", 
+              "duration", self.duration, 
+              "segment_amount", len(self.segment_start_duration), 
+              "amount", self.direct_loudness_amount)
+
+        segment_index = 0
+        for i in range(self.direct_loudness_amount):
+            time = self.direct_loudness_sample_duration * i
+            while not self.is_time_in_segment(segment_index, time):
+                segment_index += 1
+            self.direct_loudness[i] = self.get_exact_loudness(segment_index)
+
+    def is_time_in_segment(self, index, time):
+        start = self.segment_start_duration[index][0]
+        end = start + self.segment_start_duration[index][1]
+        return time >= start and time < end
+
+    def get_exact_loudness(self, index):
+        return self.raw['loudness'][index][1]
+
+    def sample(self, feature, options):
+        sampled_feature = []
+
+        sample_amount = 0
+        sample_duration = 0
+        if 'sample_duration' in options:
+            # make sure the length of the track is divisible by sample_duration
+            sample_amount = round(self.duration / options.get("sample_duration"))
+            sample_duration = self.duration / sample_amount
+        if 'sample_amount' in options:
+            sample_amount = options.get("sample_amount")
+            sample_duration = self.duration / sample_amount
+
+        i = 0
+        for s in range(sample_amount):
+            average_feature = np.zeros(12, dtype=np.float32)
+
+            sample_start = s * sample_duration
+            sample_end = (s + 1) * sample_duration
+
+            # Sample is contained in segment, simply copy pitch from segment and go to next sample
+            if self.segments[i].get_end() > sample_end:
+                average_feature = np.add(average_feature, self.segments[i].get_feature_by_name(feature))
+                sampled_feature.append(average_feature)
+                continue
+
+            # add part of first segment
+            if self.segments[i].get_end() > sample_start:
+                weight = (self.segments[i].get_end() - sample_start) / sample_duration
+                weight_result = [x * weight for x in self.segments[i].get_feature_by_name(feature)]
+                average_feature = np.add(average_feature, weight_result)
+                i += 1
+
+            # while entire segment is contained in sample
+            while i < len(self.segments) and self.segments[i].get_end() < sample_end:
+                weight = self.segments[i].duration / sample_duration
+                weight_result = [x * weight for x in self.segments[i].get_feature_by_name(feature)]
+                average_feature = np.add(average_feature, weight_result)
+                i += 1
+
+            # add part of last segment
+            if i < len(self.segments):
+                weight = (sample_end - self.segments[i].start) / sample_duration
+                weight_result = [x * weight for x in self.segments[i].get_feature_by_name(feature)]
+                average_feature = np.add(average_feature, weight_result)
+
+            sampled_feature.append(average_feature)
+
+        return sampled_feature

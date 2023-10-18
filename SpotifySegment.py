@@ -127,4 +127,13 @@ class SpotifySegment:
         avg_second = (max_val + end) / 2
         avg = avg_first * max_time + avg_second * (1 - max_time)
         return avg
+    
+    def get_feature_by_name(self, feature):
+        if feature == 'pitches':
+            return self.get_pitches()
+        if feature == 'loudness':
+            return self.get_loudness_features()
+        if feature == 'duration':
+            return self.get_duration()
+        return None
 
