@@ -1,4 +1,4 @@
-import AudioUtil as audioUtil
+import AudioUtil as AudioUtil
 try_remove_percussion = False
 equalize_bass = False
 
@@ -38,7 +38,7 @@ class SpotifySegment:
         for pitch in self.segment['pitches']:
             self.pitches.append(pitch)  # Assuming audioUtil.logCompression(pitch, GAMMA) is not required
 
-        self.tonality_angle, self.tonality_radius, self.tonality_energy = audioUtil.tonality(self.pitches)
+        self.tonality_angle, self.tonality_radius, self.tonality_energy = AudioUtil.tonality(self.pitches)
 
         min_duration = 0.2
         decay = 0.5
@@ -110,10 +110,10 @@ class SpotifySegment:
 
     def get_loudness_features(self):
         return [
-            audioUtil.loudness_perceived(self.loudness_start),
-            audioUtil.loudness_perceived(self.loudness_max),
+            AudioUtil.loudness_perceived(self.loudness_start),
+            AudioUtil.loudness_perceived(self.loudness_max),
             self.loudness_max_time,
-            audioUtil.loudness_perceived(self.loudness_end)
+            AudioUtil.loudness_perceived(self.loudness_end)
         ]
 
     def get_average_loudness(self, next_segment_loudness):

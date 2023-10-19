@@ -6,6 +6,7 @@ from HalfMatrix import HalfMatrix
 import DistanceCalc
 import logging as log
 from Features import Features
+import Filter as Filter
 
 ############# Spotify client setup: #############
 
@@ -59,12 +60,8 @@ def calculate_ssm(features, sample_duration, all_pitches=False, threshold=0, sim
 
 def compute_harmonic_structure(options):
     pitch_features = options.get('pitch_features')
-    sample_amount = len(pitch_features)
-
-    # TODO: Gaussian blur the features
-
-    pitch_ssm = calculate_ssm(pitch_features, options.get('sample_duration'), options.get('all_pitches'), 0.35, "euclidean")
-    # print(pitch_ssm.data)
+    smoothed_features = Filter.gaussian_blur_features(pitch_features, 1)
+    pitch_ssm = calculate_ssm(smoothed_features, options.get('sample_duration'), options.get('all_pitches'), 0.35, "euclidean")
 
 
 def process():

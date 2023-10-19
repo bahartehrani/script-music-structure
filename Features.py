@@ -2,6 +2,7 @@ from SpotifySegment import SpotifySegment
 import logging as log
 import numpy as np
 from scipy.ndimage import gaussian_filter1d
+import math
 
 class Features:
     def __init__(self, analysis_data, options=None):
@@ -47,12 +48,12 @@ class Features:
             self.segments.append(SpotifySegment(segment))
             self.segment_start_duration.append([segment['start'], segment['duration']])
         self.length = len(self.segments)
-        self.sample_amount = min(int(self.duration / options.get('sample_duration', 1)), options.get('samples', 0))
+        self.sample_amount = min(math.ceil(self.duration / options.get('sample_duration', 1)), options.get('samples', 0))
         self.sample_duration = analysis_data['track']['duration'] / self.sample_amount
 
         self.sample_blur = options.get('sample_blur', 1)
         
-        log.debug(f"Sampling, Amount: {self.sample_amount}, Duration: {self.sample_duration}")
+        print(f"Sampling, Amount: {self.sample_amount}, Duration: {self.sample_duration}")
 
         self.process_segments()
         if len(self.segments):
