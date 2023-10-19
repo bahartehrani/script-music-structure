@@ -100,11 +100,11 @@ class Features:
             # Calculate range of samples e.g. [2,6] clip by 0 and size
             sample_range_start_index = max(
                 0,
-                int((segment.start - blur_outside_sample_duration) / self.sample_duration)
+                math.floor((segment.start - blur_outside_sample_duration) / self.sample_duration)
             )
             sample_range_end_index = min(
                 self.sample_amount - 1,
-                int((segment_end + blur_outside_sample_duration) / self.sample_duration)
+                math.floor((segment_end + blur_outside_sample_duration) / self.sample_duration)
             )
 
             range_size = sample_range_end_index - sample_range_start_index
@@ -195,7 +195,7 @@ class Features:
         self.average_loudness /= len(self.sampled_smoothed_avg_loudness)
 
     def process_direct_loudness(self):
-        self.direct_loudness_amount = int(self.duration / self.direct_loudness_sample_duration)
+        self.direct_loudness_amount = math.floor(self.duration / self.direct_loudness_sample_duration)
         self.direct_loudness = [0.0] * self.direct_loudness_amount
 
         print("Process direct loudness", 

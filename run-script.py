@@ -7,6 +7,8 @@ import DistanceCalc
 import logging as log
 from Features import Features
 import Filter as Filter
+import SSM as SSM
+import math
 
 ############# Spotify client setup: #############
 
@@ -62,6 +64,17 @@ def compute_harmonic_structure(options):
     pitch_features = options.get('pitch_features')
     smoothed_features = Filter.gaussian_blur_features(pitch_features, 1)
     pitch_ssm = calculate_ssm(smoothed_features, options.get('sample_duration'), options.get('all_pitches'), 0.35, "euclidean")
+
+    enhanced_ssm = SSM.enhance_ssm(
+    pitch_ssm,
+    {
+        'blur_length': options.get('enhance_blur_length'),
+        'tempo_ratios': options.get('tempo_ratios'),
+        'strategy': 'linmed'
+    }
+    )
+    # np.savetxt("ssm.txt", enhanced_ssm.data)
+
 
 
 def process():
