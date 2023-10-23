@@ -89,7 +89,7 @@ def process():
         'sample_duration': features.sample_duration,
         'all_pitches': False,
         'enhance_blur_length': 6,
-        'tempo_ratios': [0.66, 0.81, 1, 1.22, 1.5],
+        'tempo_ratios': [1.5],
     })
 
 

@@ -13,7 +13,13 @@ def enhance_ssm(ssm, options):
         )
 
     enhanced_ssm = HalfMatrix.from_(ssm) 
-    enhanced_ssm.fill_by_index(lambda i: max([enhancement_pass.data[i] for enhancement_pass in enhancement_passes]))
+    def get_max_at_index(i):
+        max_val = 0
+        for ep in enhancement_passes:
+            if ep.data[i] > max_val:
+                max_val = ep.data[i]
+        return max_val
+    enhanced_ssm.fill_by_index(get_max_at_index)
     
     return enhanced_ssm
 
@@ -22,9 +28,9 @@ def linear_smoothing(ssm, length, tempo_ratio):
 
     blur = round(length / 2)
     total = pow(blur + 1, 2)
-    tempos = [0] * (blur * 2 + 1)
+    tempos = np.zeros((blur * 2 + 1), dtype=np.int8)
     for i in range(-blur, 1 + blur):
-        tempos[i + blur] = round(i * tempo_ratio)
+        tempos[i + blur] = math.floor(i * tempo_ratio + 0.5)
 
     def feature_callback(x, y, f):
         sum_ = 0
@@ -34,17 +40,16 @@ def linear_smoothing(ssm, length, tempo_ratio):
         return sum_ / total
 
     smoothed_ssm.fill_features(feature_callback)
-    np.savetxt("ssm.txt", smoothed_ssm.data)
     return smoothed_ssm
 
 def median_smoothing(ssm, length, tempo_ratio, resolution=128):
-    buckets = [0.0] * resolution
+    buckets = np.zeros(resolution, dtype=np.float32)
 
-    l = math.floor((length - 1) // 2)
+    l = math.floor((length - 1) / 2)
 
-    tempos = [0] * (l * 2 + 1)
+    tempos = np.zeros((l * 2 + 1), dtype=np.int8)
     for i in range(-l, 1 + l):
-        tempos[i + l] = round(i * tempo_ratio)
+        tempos[i + l] = math.floor(i * tempo_ratio + 0.5)
     
     smoothed_ssm = HalfMatrix.from_(ssm)
 

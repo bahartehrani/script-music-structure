@@ -196,7 +196,7 @@ class Features:
 
     def process_direct_loudness(self):
         self.direct_loudness_amount = math.floor(self.duration / self.direct_loudness_sample_duration)
-        self.direct_loudness = [0.0] * self.direct_loudness_amount
+        self.direct_loudness = np.zeros(self.direct_loudness_amount, dtype=np.float32)
 
         print("Process direct loudness", 
               "duration", self.duration, 

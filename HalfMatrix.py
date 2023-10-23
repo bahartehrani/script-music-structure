@@ -1,4 +1,5 @@
 from NumberType import NumberType, get_number_type_by_name
+import numpy as np
 
 class HalfMatrix:
     @staticmethod
@@ -13,10 +14,10 @@ class HalfMatrix:
         self.length = ((self.size * self.size + self.size) // 2) * self.feature_amount
 
         if 'buffer' in options:
-            self.data = bytearray(options['buffer'])
+            self.data = np.zeros(options['buffer'], dtype=np.uint8)
             assert self.length == len(self.data)
         else:
-            self.data = bytearray(self.length)
+            self.data = np.zeros(self.length, dtype=np.uint8)
 
     def fill_features(self, callback):
         for y in range(self.size):
@@ -36,10 +37,9 @@ class HalfMatrix:
     def from_(matrix, options=None):
         if options is None:
             options = {}
-
-        feature_amount = options.get('feature_amount', getattr(matrix, 'feature_amount', None))
-        number_type = options.get('number_type', getattr(matrix, 'number_type', None))
-        sample_duration = options.get('sample_duration', getattr(matrix, 'sample_duration', None))
+        feature_amount = matrix.feature_amount
+        number_type = matrix.number_type
+        sample_duration = matrix.number_type
 
         return HalfMatrix({
             'size': matrix.size, 
@@ -60,7 +60,7 @@ class HalfMatrix:
         return x <= y and y < self.size and x >= 0 and y >= 0
     
     def get_values_normalized(self, x, y):
-        values = [0] * self.feature_amount
+        values = np.zeros(self.feature_amount, dtype=np.uint8)
         for o in range(self.feature_amount):
             index = ((y * y + y) // 2) * self.feature_amount + x * self.feature_amount + o
             values[o] = self.data[index] / self.number_type.value['scale']
