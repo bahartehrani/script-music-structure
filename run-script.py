@@ -8,7 +8,7 @@ import logging as log
 from Features import Features
 import Filter as Filter
 import SSM as SSM
-import math
+from Matrix import Matrix
 
 ############# Spotify client setup: #############
 
@@ -73,8 +73,10 @@ def compute_harmonic_structure(options):
         'strategy': 'linmed'
     }
     )
-    print(enhanced_ssm.data[:100])
     transposition_invariant_pre = SSM.make_transposition_invariant(enhanced_ssm)
+    strict_path_matrix_half = SSM.row_column_auto_threshold(transposition_invariant_pre, 0.15)
+    strict_path_matrix = Matrix.from_half_matrix(strict_path_matrix_half)
+    print(strict_path_matrix.data[:100])
     # np.savetxt("ssm.txt", transposition_invariant_pre.data)
 
 
@@ -91,7 +93,7 @@ def process():
         'sample_duration': features.sample_duration,
         'all_pitches': False,
         'enhance_blur_length': 6,
-        'tempo_ratios': [1.5],
+        'tempo_ratios': [0.66, 0.81, 1, 1.22, 1.5],
     })
 
 

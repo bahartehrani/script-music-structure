@@ -93,7 +93,6 @@ def make_transposition_invariant(ssm: HalfMatrix):
                 max_val = ssm.data[i * ssm.feature_amount + f]
         transposition_invariant_ssm.data[i] = max_val
         i += 1
-    # print(transposition_invariant_ssm.data[:100])
     return transposition_invariant_ssm
 
 
@@ -103,8 +102,14 @@ def row_column_auto_threshold(ssm: HalfMatrix, percentage_row, percentage_col=No
     
     type_scale = ssm.number_type.value['scale']
 
-    row_binary_matrix = HalfMatrix(size=ssm.size, number_type=NumberType.UINT8)
-    col_binary_matrix = HalfMatrix(size=ssm.size, number_type=NumberType.UINT8)
+    row_binary_matrix = HalfMatrix({
+        'size': ssm.size, 
+        'number_type': 'UINT8',
+    })
+    col_binary_matrix = HalfMatrix({
+        'size': ssm.size, 
+        'number_type': 'UINT8',
+    })
     frequencies = np.zeros((type_scale + 1), dtype=np.uint16)
 
     for row in range(ssm.size):
@@ -146,6 +151,8 @@ def row_column_auto_threshold(ssm: HalfMatrix, percentage_row, percentage_col=No
                 col_binary_matrix.set_value(col, row, value)
 
     threshold_ssm = HalfMatrix.from_(ssm)
-    threshold_ssm.fill(lambda x, y: (row_binary_matrix.get_value(x, y) + col_binary_matrix.get_value(x, y)) / 2)
+    def fill_function(x, y):
+        return (row_binary_matrix.get_value(x, y).astype(np.uint16) + col_binary_matrix.get_value(x, y).astype(np.uint16)) / 2
+    threshold_ssm.fill(fill_function)
 
     return threshold_ssm
