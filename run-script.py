@@ -73,7 +73,9 @@ def compute_harmonic_structure(options):
         'strategy': 'linmed'
     }
     )
-    # np.savetxt("ssm.txt", enhanced_ssm.data)
+    print(enhanced_ssm.data[:100])
+    transposition_invariant_pre = SSM.make_transposition_invariant(enhanced_ssm)
+    # np.savetxt("ssm.txt", transposition_invariant_pre.data)
 
 
 
