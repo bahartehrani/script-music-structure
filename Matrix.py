@@ -31,9 +31,37 @@ class Matrix:
         })
         matrix.fill(half_matrix.get_value_mirrored)
         return matrix
+    
+    @staticmethod
+    def from_(matrix, options=None):
+        if options is None:
+            options = {}
+        if isinstance(matrix, HalfMatrix):
+            return Matrix.from_half_matrix(matrix)
+        feature_amount = matrix.feature_amount
+        number_type = matrix.number_type
+        sample_duration = matrix.number_type
+
+        return HalfMatrix({
+            'width': matrix.width,
+            'height': matrix.height,
+            'feature_amount': feature_amount, 
+            'number_type': number_type, 
+            'sample_duration': sample_duration
+        })
 
     def fill(self, callback):
         for y in range(self.height):
             for x in range(self.width):
                     self.data[(y * self.width + x) * self.feature_amount] = callback(x, y)
         
+    def get_value_normalized(self, x, y, f=0):
+        index = (y * self.width + x) * self.feature_amount + f
+        return self.data[index] / self.number_type.value['scale']
+    
+    def get_value(self, x, y, f=0):
+        index = (y * self.width + x) * self.feature_amount + f
+        return self.data[index]
+    
+    def get_value_mirrored(self, x, y, f=0):
+        return self.get_value(x, y, f)

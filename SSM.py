@@ -1,4 +1,5 @@
 from HalfMatrix import HalfMatrix
+from Matrix import Matrix
 import math
 import numpy as np
 from NumberType import NumberType
@@ -156,3 +157,21 @@ def row_column_auto_threshold(ssm: HalfMatrix, percentage_row, percentage_col=No
     threshold_ssm.fill(fill_function)
 
     return threshold_ssm
+
+def mute_or(ssm, sections_in_samples):
+    if isinstance(ssm, Matrix):
+        solo_ssm = Matrix.from_(ssm)
+    else:
+        solo_ssm = HalfMatrix.from_(ssm)
+
+    def fill_function(x, y):
+        if x == y:
+            solo_ssm.set_value(x, y, solo_ssm.number_type.value['max'])
+        else:
+            in_selection = any(section.start <= x < section.end or section.start <= y < section.end 
+                                for section in sections_in_samples)
+            value = 0 if in_selection else ssm.get_value_mirrored(x, y)
+            solo_ssm.set_value(x, y, value)
+
+    solo_ssm.fill(fill_function)
+    return solo_ssm

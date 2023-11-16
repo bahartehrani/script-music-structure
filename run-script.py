@@ -9,6 +9,9 @@ from Features import Features
 import Filter as Filter
 import SSM as SSM
 from Matrix import Matrix
+import Structure as Structure
+import math
+import KeyDetection as KeyDetection
 
 ############# Spotify client setup: #############
 
@@ -76,9 +79,41 @@ def compute_harmonic_structure(options):
     transposition_invariant_pre = SSM.make_transposition_invariant(enhanced_ssm)
     strict_path_matrix_half = SSM.row_column_auto_threshold(transposition_invariant_pre, 0.15)
     strict_path_matrix = Matrix.from_half_matrix(strict_path_matrix_half)
-    print(strict_path_matrix.data[:100])
-    # np.savetxt("ssm.txt", transposition_invariant_pre.data)
+    
+    sample_amount = len(pitch_features)
+    sample_duration = options.get('sample_duration')
+    duration = 3
+    sampled_segments = Structure.create_fixed_duration_structure_segments(sample_amount, sample_duration, duration)
 
+    def update_callback(harmonic_structure, state="processing", strategy="Classic"):
+        log.debug("Harmonic Structure", harmonic_structure)
+        sorted_harmonic_structure_mds = color_harmonic_structure(harmonic_structure, strict_path_matrix, strategy)
+
+        for section in sorted_harmonic_structure_mds:
+            start_in_samples = math.floor(section.start / sample_duration)
+            end_in_samples = math.floor(section.end / sample_duration)
+            key = KeyDetection.detect(pitch_features, start_in_samples, end_in_samples)
+            section.key = key
+
+    harmonic_structure, mutor_group_amount, segments_mutor = Structure.find_mute_decomposition(
+        strict_path_matrix,
+        sampled_segments,
+        sample_duration,
+        "classic",
+        "or",
+        update_callback
+    )
+
+    update_callback(harmonic_structure, "done", "GD")
+
+def color_harmonic_structure(harmonic_structure, ssm, strategy):
+    log.debug(strategy)
+    harmonic_structure_mds = Structure.mds_color_segments(harmonic_structure, ssm, "DTW", strategy, True)
+
+    sorted_harmonic_structure_mds = sorted(harmonic_structure_mds, key=lambda x: (x.group_id, x.start))
+    for i in range(0,10):
+        print(sorted_harmonic_structure_mds[i].end)
+    return sorted_harmonic_structure_mds
 
 
 def process():
