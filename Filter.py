@@ -1,4 +1,5 @@
 import math
+import numpy as np
 
 def gaussian_blur_features(features, size):
     blurred_features = []
@@ -7,7 +8,7 @@ def gaussian_blur_features(features, size):
     feature_amount = len(features[0])
 
     for i in range(len(features)):
-        new_vector = [0] * feature_amount
+        new_vector = np.zeros(feature_amount, dtype=np.float32)
         for f in range(feature_amount):
             sum_ = 0
             kernel_sum = 0
@@ -24,7 +25,7 @@ def generate_1d_gaussian_kernel(size, sigma=None):
     if sigma is None:
         sigma = size / 2
 
-    kernel = [0.0] * size
+    kernel = np.zeros(size, dtype=np.float32)
     mean_index = (size - 1) / 2
     sum_ = 0  # For accumulating the kernel values
 
