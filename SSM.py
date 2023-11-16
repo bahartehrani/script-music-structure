@@ -1,6 +1,7 @@
 from HalfMatrix import HalfMatrix
 import math
 import numpy as np
+from NumberType import NumberType
 
 def enhance_ssm(ssm, options):
     blur_length = options.get('blur_length') or round(options.get('blur_time') / ssm.sample_duration) or 4
@@ -76,3 +77,82 @@ def median_smoothing(ssm, length, tempo_ratio, resolution=128):
     
     return smoothed_ssm
 
+def make_transposition_invariant(ssm: HalfMatrix):
+    length_without_features = ssm.length // ssm.feature_amount 
+    transposition_invariant_ssm = HalfMatrix({
+        'size': ssm.size, 
+        'number_type': 'UINT8',
+        'sample_duration': ssm.sample_duration
+    })
+
+    i = 0
+    while i < length_without_features:
+        max_val = 0
+        for f in range(ssm.feature_amount):
+            if ssm.data[i * ssm.feature_amount + f] > max_val:
+                max_val = ssm.data[i * ssm.feature_amount + f]
+        transposition_invariant_ssm.data[i] = max_val
+        i += 1
+    return transposition_invariant_ssm
+
+
+def row_column_auto_threshold(ssm: HalfMatrix, percentage_row, percentage_col=None):
+    if percentage_col is None:
+        percentage_col = percentage_row
+    
+    type_scale = ssm.number_type.value['scale']
+
+    row_binary_matrix = HalfMatrix({
+        'size': ssm.size, 
+        'number_type': 'UINT8',
+    })
+    col_binary_matrix = HalfMatrix({
+        'size': ssm.size, 
+        'number_type': 'UINT8',
+    })
+    frequencies = np.zeros((type_scale + 1), dtype=np.uint16)
+
+    for row in range(ssm.size):
+        frequencies.fill(0)
+        for col in range(ssm.size):
+            frequencies[ssm.get_value_mirrored(col, row)] += 1
+        stop_position = ssm.size * percentage_row
+        threshold_value = 0
+        for i in range(type_scale, 0, -1):
+            stop_position -= frequencies[i]
+            if stop_position <= 0:
+                threshold_value = i
+                break
+        for col in range(row + 1):
+            if ssm.get_value(col, row) >= threshold_value:
+                value = min(
+                    max(ssm.get_value(col, row) - threshold_value, 0) / (type_scale - threshold_value) * type_scale,
+                    type_scale
+                )
+                row_binary_matrix.set_value(col, row, value)
+
+    for col in range(ssm.size):
+        frequencies.fill(0)
+        for row in range(ssm.size):
+            frequencies[ssm.get_value_mirrored(col, row)] += 1
+        stop_position = ssm.size * percentage_col
+        threshold_value = 0
+        for i in range(type_scale, 0, -1):
+            stop_position -= frequencies[i]
+            if stop_position <= 0:
+                threshold_value = i
+                break
+        for row in range(col, ssm.size):
+            if ssm.get_value(col, row) >= threshold_value:
+                value = min(
+                    max(ssm.get_value(col, row) - threshold_value, 0) / (type_scale - threshold_value) * type_scale,
+                    type_scale
+                )
+                col_binary_matrix.set_value(col, row, value)
+
+    threshold_ssm = HalfMatrix.from_(ssm)
+    def fill_function(x, y):
+        return (row_binary_matrix.get_value(x, y).astype(np.uint16) + col_binary_matrix.get_value(x, y).astype(np.uint16)) / 2
+    threshold_ssm.fill(fill_function)
+
+    return threshold_ssm

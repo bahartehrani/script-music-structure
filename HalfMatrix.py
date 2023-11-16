@@ -47,7 +47,13 @@ class HalfMatrix:
             'number_type': number_type, 
             'sample_duration': sample_duration
         })
-    
+
+    def fill(self, callback):
+        for y in range(self.size):
+            cells_before = ((y * y + y) // 2) * self.feature_amount
+            for x in range(y + 1):
+                self.data[cells_before + x * self.feature_amount] = callback(x, y)
+
     def fill_by_index(self, callback):
         for i in range(len(self.data) - 1, -1, -1): 
             self.data[i] = callback(i)
@@ -69,4 +75,13 @@ class HalfMatrix:
     def get_value_normalized(self, x, y, f=0):
         index = ((y * y + y) // 2) * self.feature_amount + x * self.feature_amount + f
         return self.data[index] / self.number_type.value['scale']
+
+    def get_value_mirrored(self, x, y):
+        if x > y:
+            return self.data[((x * x + x) // 2) * self.feature_amount + y * self.feature_amount]
+        else:
+            return self.data[((y * y + y) // 2) * self.feature_amount + x * self.feature_amount]
+
+    def set_value(self, x, y, value):
+        self.data[((y * y + y) // 2) * self.feature_amount + x * self.feature_amount] = value
 
