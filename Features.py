@@ -1,7 +1,6 @@
 from SpotifySegment import SpotifySegment
 import logging as log
 import numpy as np
-from scipy.ndimage import gaussian_filter1d
 import math
 
 class Features:
@@ -175,7 +174,7 @@ class Features:
                 self.sampled[feature_name][sample_index] /= divisor
 
     def process_samples(self):
-        self.sampled_smoothed_avg_loudness = gaussian_filter1d(self.sampled['avg_loudness'], 1)
+        self.sampled_smoothed_avg_loudness = apply_gaussian_filter(self.sampled['avg_loudness'], 1)
         self.average_loudness = 0
         self.max_loudness = 0
         for loudness in self.sampled_smoothed_avg_loudness:
@@ -267,3 +266,11 @@ class Features:
             sampled_feature.append(average_feature)
 
         return sampled_feature
+    
+def gauss(n,sigma=1):
+    r = range(-int(n/2),int(n/2)+1)
+    return [1 / (sigma * math.sqrt(2*math.pi)) * math.exp(-float(x)**2/(2*sigma**2)) for x in r]
+
+def apply_gaussian_filter(data, sigma):
+    kernel = gauss(9, sigma)
+    return np.convolve(data, kernel, mode='same')

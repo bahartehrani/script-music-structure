@@ -76,6 +76,13 @@ class HalfMatrix:
         index = ((y * y + y) // 2) * self.feature_amount + x * self.feature_amount + f
         return self.data[index] / self.number_type.value['scale']
 
+    def get_nested_array(self):
+        nested_array = [[0 for _ in range(self.size)] for _ in range(self.size)]
+        for y in range(self.size):
+            for x in range(self.size):
+                nested_array[y][x] = self.get_value_mirrored(x, y)
+        return nested_array
+
     def get_value_mirrored(self, x, y):
         if x > y:
             return self.data[((x * x + x) // 2) * self.feature_amount + y * self.feature_amount]

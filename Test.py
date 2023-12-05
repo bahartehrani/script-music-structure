@@ -1,8 +1,4 @@
 # Currently: 
-# Enhancing SSM. 
-
-# Figure out why rounding is weird. uint8array doesn't translate properly. 
-
 # Map each song's color per segment
 # If colors are nearby, then embeddings are nearby
 # Using transformers
@@ -13,3 +9,8 @@
 # Individual drops versus collabs
 # Differences in structures from Tiktok versus radio virality
 # Move to server
+
+# Current step:
+# Follow the functions deepest down, and test upwards.
+# Complete find_mute_decomposition - 
+# Structure and PathExtraction functions to be filled in.
