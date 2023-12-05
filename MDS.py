@@ -2,7 +2,7 @@ from Matrix import Matrix
 from HalfMatrix import HalfMatrix
 import math
 import numpy as np
-import seedrandom
+import random
 
 def get_mds_coordinates(
     distance_matrix: HalfMatrix,
@@ -103,8 +103,9 @@ def get_mds_coordinates_with_gradient_descent_matrix(distances, lr=7, max_steps=
     return {'coordinates': coordinates, 'loss_per_step': loss_per_step}
 
 def get_initial_mds_coordinates(num_coordinates, dimensions=2, seed=1):
-    rng = seedrandom.SeededRNG(seed)
-    random_uniform = np.array([[rng.random() for _ in range(dimensions)] for _ in range(num_coordinates)])
+    random.seed(seed)
+    # Create a num_coordinates x dimensions matrix with uniform random numbers
+    random_uniform = np.random.rand(num_coordinates, dimensions)
     return random_uniform / np.sqrt(dimensions)
 
 import numpy as np

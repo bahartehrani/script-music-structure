@@ -223,7 +223,9 @@ def segment_distance_overlap(x, y):
 
 def create_score_matrix_buffer(sample_amount):
     D = np.zeros(sample_amount * sample_amount, dtype=np.float32)
-    return D.fill(np.NINF)
+    D.fill(np.NINF)
+    return D
+
 
 logi = 0
 def compute_segment_path_family_info(path_ssm, start_in_samples, end_in_samples, score_matrix_buffer=None, strategy=None):
@@ -231,7 +233,7 @@ def compute_segment_path_family_info(path_ssm, start_in_samples, end_in_samples,
     logi += 1
 
     sample_amount = path_ssm.height
-    if not score_matrix_buffer:
+    if score_matrix_buffer is None:
         score_matrix_buffer = create_score_matrix_buffer(sample_amount)
 
     P, path_scores, score, width = extract_path_family(path_ssm, start_in_samples, end_in_samples)
@@ -240,7 +242,6 @@ def compute_segment_path_family_info(path_ssm, start_in_samples, end_in_samples,
         return compute_fitness(P, path_scores, score, sample_amount, width)
 
     fitness_data = fitness_function(strategy, P, path_scores, score, sample_amount, width)
-    
     path_family = []
     for path in fitness_data['pruned_path_family']:
         path_coords = []

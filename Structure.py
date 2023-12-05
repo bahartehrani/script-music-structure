@@ -78,7 +78,6 @@ wiggle_size = 3
 def find_mute_decomposition(path_ssm, structure_segments, sample_duration, strategy="classic", mute_type="or", 
                             update_callback=None, comparison_property="fitness", min_duration_seconds=2, 
                             min_fitness=0.02):
-    
     track_end = structure_segments[-1].end
     structure_sections = []
     sorted_structure_sections = []
@@ -281,6 +280,7 @@ def get_path_family(section, sample_duration, group_id):
         new_section = Section({
             'start': start, 
             'end': end, 
+            'group_id': group_id,
             'confidence': path_confidence
         })
         new_section.path_family = section.path_family
